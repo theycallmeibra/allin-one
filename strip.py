@@ -4,6 +4,7 @@ import json
 import random
 import string
 import re
+
 from bs4 import BeautifulSoup as bs
 
 
@@ -16,16 +17,33 @@ def email():
 def pregs(list):
     arrays = re.findall(r'[0-9]+', list)
     return arrays
-#proxy 
 
 
-r = requests.get('https://api.proxyscrape.com/v2/?request=displayproxies&protocol=socks4&timeout=10000&country=all&ssl=all&anonymity=all').text
-res = r.partition('\n')[-1]
-proxy = {"http": f"http://{res}"}
-session = requests.session()
+# Proxy 
 
-session.proxies = proxy
+	#Get Free proxy
 
+def get_free_proxies():
+    url = "https://free-proxy-list.net/"
+    # get the HTTP response and construct soup object
+    soup = bs(requests.get(url).content, "html.parser")
+    proxies = []
+    for row in soup.find("table", attrs={"id": "proxylisttable"}).find_all("tr")[1:]:
+        tds = row.find_all("td")
+        try:
+            ip = tds[0].text.strip()
+            port = tds[1].text.strip()
+            host = f"{ip}:{port}"
+            proxies.append(host)
+        except IndexError:
+            continue
+    return proxies
+
+def get_session(proxies):
+	session = requests.session()
+	proxy = random.choice(proxies)
+	session.proxies = {"http": proxy, "https": proxy}
+	return session
 
 
 # main Fun
@@ -130,10 +148,10 @@ def main(list):
 		print(" $ ERROR " + str(re.status_code))
 
 
-	if rx.status_code == 200:
-		print(' $ rx Is OK')
-	else:
+	if rx.status_code == 404:
 		print(" $ ERROR in rx, Status : " + str(rx.status_code))
+	else:
+		print(' $ rx Is OK')
 
 	if s.status_code == 200:
 		print(' $ s Is OK')
